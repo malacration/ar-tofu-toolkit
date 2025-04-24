@@ -95,7 +95,7 @@ data "aws_iam_policy_document" "site" {
     resources = ["*"]
     condition {
         test     = "StringEquals"
-        variable = "s3:ResourceTag/project"
+        variable = "aws:ResourceTag/projeto"
         values   = [var.name]
     }
   }
