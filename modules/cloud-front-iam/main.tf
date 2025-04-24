@@ -87,15 +87,6 @@ data "aws_iam_policy_document" "site" {
     ]
     resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
   }
-  
-  statement {
-    sid     = "ConsoleLoginSupport"
-    effect  = "Allow"
-    actions = [
-      "iam:ChangePassword"
-    ]
-    resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
-  }
 }
 
 resource "aws_iam_user_policy" "site" {
