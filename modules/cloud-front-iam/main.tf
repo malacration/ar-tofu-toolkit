@@ -1,7 +1,7 @@
 locals {
     bucket_prod       = "ar-${var.name}-production"
     bucket_hmg        = "ar-${var.name}-hmg"
-    state_object_key  = "${var.name}-tfstate"
+    state_object_key  = "${var.name}.tfstate"
     bucket-tf-state   = "ar-tofu-state"
 }
 
