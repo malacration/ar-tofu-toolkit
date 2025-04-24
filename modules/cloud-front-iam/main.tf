@@ -14,14 +14,8 @@ resource "aws_iam_access_key" "site" {
   user = aws_iam_user.site.name
 }
 
-resource "random_password" "iam_password" {
-  length           = 20
-  special          = true
-}
-
 resource "aws_iam_user_login_profile" "site" {
   user = aws_iam_user.site.name
-  password                          = random_password.iam_password.result
   password_reset_required           = true
 }
 
