@@ -47,7 +47,7 @@ data "aws_iam_policy_document" "site" {
     ]
     condition {
         test     = "StringEquals"
-        variable = "s3:ResourceTag/projeto"
+        variable = "aws:ResourceTag/projeto"
         values   = [var.name]
     }
   }
@@ -58,6 +58,15 @@ data "aws_iam_policy_document" "site" {
     effect  = "Allow"
     actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["arn:aws:s3:::ar-tofu-state/${local.state_object_key}"]
+  }
+
+  statement {
+    sid     = "ListTfStateBucket"
+    effect  = "Allow"
+    actions = ["s3:ListBucket"]
+    resources = [
+      "arn:aws:s3:::ar-tofu-state"
+    ]
   }
 
   # Permissão para modificar entrada DNS específica no Route53
