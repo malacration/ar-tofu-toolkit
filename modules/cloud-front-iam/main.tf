@@ -34,6 +34,24 @@ data "aws_iam_policy_document" "site" {
     ]
   }
 
+  statement {
+    sid     = "AllowReadOnlyTaggedBuckets"
+    effect  = "Allow"
+    actions = [
+        "s3:GetObject",
+        "s3:ListBucket"
+    ]
+    resources = [
+        "arn:aws:s3:::*",
+        "arn:aws:s3:::*/*"
+    ]
+    condition {
+        test     = "StringEquals"
+        variable = "s3:ResourceTag/projeto"
+        values   = [var.name]
+    }
+  }
+
   # Acesso direto ao tfstate
   statement {
     sid     = "TfStateAccess"
@@ -86,31 +104,6 @@ data "aws_iam_policy_document" "site" {
       "iam:ChangePassword"
     ]
     resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
-  }
-
-  statement {
-    sid     = "AllowListAllBuckets"
-    effect  = "Allow"
-    actions = ["s3:ListAllMyBuckets"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid     = "AllowReadOnlyTaggedBuckets"
-    effect  = "Allow"
-    actions = [
-        "s3:GetObject",
-        "s3:ListBucket"
-    ]
-    resources = [
-        "arn:aws:s3:::*",
-        "arn:aws:s3:::*/*"
-    ]
-    condition {
-        test     = "StringEquals"
-        variable = "s3:ResourceTag/projeto"
-        values   = [var.name]
-    }
   }
 }
 
