@@ -14,6 +14,17 @@ resource "aws_iam_access_key" "site" {
   user = aws_iam_user.site.name
 }
 
+resource "random_password" "iam_password" {
+  length           = 20
+  special          = true
+}
+
+resource "aws_iam_user_login_profile" "site" {
+  user = aws_iam_user.site.name
+  password                          = random_password.iam_password.result
+  password_reset_required           = true
+}
+
 
 data "aws_iam_policy_document" "site" {
   # Acesso total aos buckets "ar-{name}-{env}"
@@ -72,6 +83,24 @@ data "aws_iam_policy_document" "site" {
         "${var.name}-hmg"
       ]
     }
+  }
+  
+  statement {
+    sid     = "ConsoleLoginSupport"
+    effect  = "Allow"
+    actions = [
+      "iam:ChangePassword"
+    ]
+    resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
+  }
+  
+  statement {
+    sid     = "ConsoleLoginSupport"
+    effect  = "Allow"
+    actions = [
+      "iam:ChangePassword"
+    ]
+    resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
   }
 }
 
