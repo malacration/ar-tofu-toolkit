@@ -11,7 +11,7 @@ output "iam_info" {
     user          = nonsensitive(aws_iam_user.site.name)
     id            = nonsensitive(aws_iam_access_key.site.id)
     key           = nonsensitive(aws_iam_access_key.site.secret)
-    password      = nonsensitive(aws_iam_access_key.site.password)
+    password      = nonsensitive(aws_iam_user_login_profile.site.password)
   }
   sensitive = true
 }
