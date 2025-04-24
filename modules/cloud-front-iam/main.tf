@@ -93,9 +93,22 @@ data "aws_iam_policy_document" "site" {
     effect  = "Allow"
     actions = ["s3:ListAllMyBuckets"]
     resources = ["*"]
+  }
+
+  statement {
+    sid     = "AllowReadOnlyTaggedBuckets"
+    effect  = "Allow"
+    actions = [
+        "s3:GetObject",
+        "s3:ListBucket"
+    ]
+    resources = [
+        "arn:aws:s3:::*",
+        "arn:aws:s3:::*/*"
+    ]
     condition {
         test     = "StringEquals"
-        variable = "aws:ResourceTag/projeto"
+        variable = "s3:ResourceTag/projeto"
         values   = [var.name]
     }
   }
