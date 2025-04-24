@@ -87,6 +87,18 @@ data "aws_iam_policy_document" "site" {
     ]
     resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
   }
+
+  statement {
+    sid     = "AllowListAllBuckets"
+    effect  = "Allow"
+    actions = ["s3:ListAllMyBuckets"]
+    resources = ["*"]
+    condition {
+        test     = "StringEquals"
+        variable = "s3:ResourceTag/project"
+        values   = [var.name]
+    }
+  }
 }
 
 resource "aws_iam_user_policy" "site" {

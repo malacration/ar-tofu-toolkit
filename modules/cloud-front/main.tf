@@ -1,5 +1,5 @@
 locals {
-  full_name = "${var.project-name}-${var.cliente_name}-${var.environment}"
+  full_name = "${var.project-name}-${var.environment}"
 }
 
 resource "aws_cloudfront_origin_access_control" "cloudfront_acl" {
@@ -74,7 +74,7 @@ resource "aws_cloudfront_distribution" "distribution" {
   tags = {
     cliente = var.cliente_name
     cliente-group = var.cliente_group
-    project = var.repo_name
+    project = var.project-name
     environment = var.environment
   }
 }
