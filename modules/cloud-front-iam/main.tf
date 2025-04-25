@@ -103,11 +103,6 @@ data "aws_iam_policy_document" "site" {
       "cloudfront:DeleteDistribution",
     ]
     resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestTag/projeto"
-      values   = ["fatura-energia"]
-    }
   }
   
   statement {
