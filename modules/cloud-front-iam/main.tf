@@ -126,7 +126,8 @@ data "aws_iam_policy_document" "site" {
       "cloudfront:DeleteCloudFrontOriginAccessIdentity",
       "cloudfront:GetDistribution",
       "cloudfront:ListTagsForResource",
-      "cloudfront:UpdateDistribution"
+      "cloudfront:UpdateDistribution",
+      "cloudfront:CreateDistribution"
     ]
     resources = ["*"]
   }
