@@ -78,31 +78,35 @@ data "aws_iam_policy_document" "site" {
       "route53:ListResourceRecordSets"
     ]
     resources = ["arn:aws:route53:::hostedzone/${var.route53_zone_id}"]
-    condition {
-      test     = "StringEquals"
-      variable = "route53:ChangeResourceRecordSetsRecordNames"
-      values   = [var.dns_host]
-    }
   }
 
-  # Permissão para criar CloudFront com nome esperado
   statement {
-    sid     = "AllowCreateExpectedCloudFront"
+    sid     = "AllowCreateFront"
     effect  = "Allow"
     actions = [
       "cloudfront:CreateDistribution",
-      "cloudfront:UpdateDistribution",
-      "cloudfront:GetDistribution",
-      "cloudfront:GetDistributionConfig"
+      "cloudfront:TagResource",
+      "cloudfront:GetDistributionConfig",
     ]
     resources = ["*"]
     condition {
       test     = "StringLike"
-      variable = "cloudfront:Comment"
-      values   = [
-        "${var.name}-production",
-        "${var.name}-hmg"
-      ]
+      variable = "aws:RequestTag/projeto"
+      values   = "fatura-energia"
+    }
+  }
+
+  statement {
+    sid     = "allowDelete"
+    effect  = "Allow"
+    actions = [
+      "cloudfront:DeleteDistribution",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringLike"
+      variable = "aws:RequestTag/projeto"
+      values   = "fatura-energia"
     }
   }
   
@@ -113,6 +117,23 @@ data "aws_iam_policy_document" "site" {
       "iam:ChangePassword"
     ]
     resources = ["arn:aws:iam::*:user/${aws_iam_user.site.name}"]
+  }
+
+  statement {
+    sid     = "Statement1"
+    effect  = "Allow"
+    actions = [
+      "cloudfront:CreateOriginAccessControl",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:CreateCloudFrontOriginAccessIdentity",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:GetCloudFrontOriginAccessIdentity",
+      "cloudfront:DeleteCloudFrontOriginAccessIdentity",
+      "cloudfront:GetDistribution",
+      "cloudfront:ListTagsForResource",
+      "cloudfront:UpdateDistribution"
+    ]
+    resources = ["*"]
   }
 }
 
