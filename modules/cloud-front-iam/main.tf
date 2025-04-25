@@ -74,6 +74,7 @@ data "aws_iam_policy_document" "site" {
     sid     = "AllowSpecificDnsChange"
     effect  = "Allow"
     actions = [
+      "route53:GetHostedZone",
       "route53:ChangeResourceRecordSets",
       "route53:ListResourceRecordSets"
     ]
