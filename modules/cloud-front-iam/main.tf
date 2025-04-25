@@ -81,7 +81,7 @@ data "aws_iam_policy_document" "site" {
     ]
     resources = [
       "arn:aws:route53:::hostedzone/${var.route53_zone_id}",
-      "arn:aws:route53:::hostedzone/${var.route53_zone_id}/*"
+      "arn:aws:route53:::change/*"
     ]
   }
 
