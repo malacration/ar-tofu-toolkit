@@ -127,7 +127,8 @@ data "aws_iam_policy_document" "site" {
       "cloudfront:GetDistribution",
       "cloudfront:ListTagsForResource",
       "cloudfront:UpdateDistribution",
-      "cloudfront:CreateDistribution"
+      "cloudfront:CreateDistribution",
+      "cloudfront:TagResource"
     ]
     resources = ["*"]
   }
