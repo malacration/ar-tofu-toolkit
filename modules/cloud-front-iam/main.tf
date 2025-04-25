@@ -76,7 +76,8 @@ data "aws_iam_policy_document" "site" {
     actions = [
       "route53:GetHostedZone",
       "route53:ChangeResourceRecordSets",
-      "route53:ListResourceRecordSets"
+      "route53:ListResourceRecordSets",
+      "route53:GetChange"
     ]
     resources = ["arn:aws:route53:::hostedzone/${var.route53_zone_id}"]
   }
