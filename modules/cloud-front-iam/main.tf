@@ -90,9 +90,9 @@ data "aws_iam_policy_document" "site" {
     ]
     resources = ["*"]
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "aws:RequestTag/projeto"
-      values   = "fatura-energia"
+      values   = ["fatura-energia"]
     }
   }
 
@@ -104,9 +104,9 @@ data "aws_iam_policy_document" "site" {
     ]
     resources = ["*"]
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "aws:RequestTag/projeto"
-      values   = "fatura-energia"
+      values   = ["fatura-energia"]
     }
   }
   
