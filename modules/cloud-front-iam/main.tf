@@ -79,7 +79,10 @@ data "aws_iam_policy_document" "site" {
       "route53:ListResourceRecordSets",
       "route53:GetChange"
     ]
-    resources = ["arn:aws:route53:::hostedzone/${var.route53_zone_id}"]
+    resources = [
+      "arn:aws:route53:::hostedzone/${var.route53_zone_id}",
+      "arn:aws:route53:::hostedzone/${var.route53_zone_id}/*"
+    ]
   }
 
   statement {
