@@ -5,7 +5,7 @@ set -x
 RELEASE_TAG=${1:-}
 REPO_OWNER=${2:-}
 REPO_NAME=${3:-}
-GITHUB_TOKEN=${4:-""}        # pode vir vazio
+GITHUB_TOKEN=${4:-""}
 BUCKETNAME=${5:-}
 EXTRA=${6:-}
 ASSET_NAME=${7:-build.zip}

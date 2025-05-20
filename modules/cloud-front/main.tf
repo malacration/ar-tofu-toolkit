@@ -84,7 +84,7 @@ output "s3_bucket" {
 }
 
 output "progam-parans" {
-  value = "${path.module}/scripts/download_release.sh ${var.release_version} ${var.repo_owner} ${var.repo_name} ${var.repo_name} ${var.github_token} ${local.full_name} ${var.path_adicional}"
+  value = "${path.module}/scripts/download_release.sh ${var.release_version} ${var.repo_owner} ${var.repo_name} ${var.github_token} ${var.repo_name} ${local.full_name} ${var.path_adicional}"
 }
 
 output "all" {

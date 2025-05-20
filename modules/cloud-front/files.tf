@@ -11,13 +11,14 @@ resource "null_resource" "check_release_version" {
 
 
 data "external" "download_release" {
-  program = ["${path.module}/scripts/download_release.sh", 
-      var.release_version,
-      var.repo_owner,
-      var.repo_name, 
-      var.github_token,
-      "${abspath(path.root)}/${local.full_name}",
-      var.path_adicional,
+  program = [
+    "${path.module}/scripts/download_release.sh",
+    var.release_version,
+    var.repo_owner,
+    var.repo_name,
+    var.github_token != "" ? var.github_token : "",
+    "${abspath(path.root)}/${local.full_name}",
+    var.path_adicional != null ? var.path_adicional : ""
   ]
 }
 
