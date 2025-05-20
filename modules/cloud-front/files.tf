@@ -61,7 +61,7 @@ resource "aws_s3_object" "adicional_files" {
 
   bucket = aws_s3_bucket.bucket.bucket
   key    = each.value
-  source = "${path.module}/../../${var.path_adicional}/${each.value}"
+  source = "${abspath(path.root)}/${var.path_adicional}/${each.value}"
   etag   = filemd5("${abspath(path.root)}/${var.path_adicional}/${each.value}")
 
   content_type = lookup(local.content_type, element(reverse(split(".", each.value)), 0), "application/octet-stream")
