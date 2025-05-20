@@ -57,7 +57,7 @@ resource "aws_s3_object" "files" {
 }
 
 resource "aws_s3_object" "adicional_files" {
-  for_each = var.path_adicional != "" ? fileset("${path.module}/../../${var.path_adicional}", "**") : []
+  for_each = var.path_adicional != "" ? fileset("${abspath(path.root)}/${var.path_adicional}", "**") : []
 
   bucket = aws_s3_bucket.bucket.bucket
   key    = each.value
