@@ -46,6 +46,7 @@ variable "repo_name" {
 variable "github_token" {
   description = "Github token"
   type        = string
+  default     = ""
 }
 
 variable "zone_id" {
