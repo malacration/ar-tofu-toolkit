@@ -16,7 +16,7 @@ data "external" "download_release" {
     var.release_version,
     var.repo_owner,
     var.repo_name,
-    var.github_token != "" ? var.github_token : "",
+    var.github_token,
     "${abspath(path.root)}/${local.full_name}",
     var.path_adicional != null ? var.path_adicional : ""
   ]

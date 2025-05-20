@@ -26,7 +26,7 @@ HDR=(-H "Accept: application/vnd.github+json")
 # cabeçalhos para download binário
 HDR_BIN=(-H "Accept: application/octet-stream")
 
-if [[ -n $GITHUB_TOKEN ]]; then
+if [[ $GITHUB_TOKEN != "none" && $GITHUB_TOKEN =~ ^(gh[pstu]_|github_pat_) ]]; then
   HDR+=(-H "Authorization: Bearer $GITHUB_TOKEN")
   HDR_BIN+=(-H "Authorization: Bearer $GITHUB_TOKEN")
 fi
