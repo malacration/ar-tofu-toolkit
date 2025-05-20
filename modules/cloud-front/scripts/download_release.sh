@@ -2,50 +2,52 @@
 set -euo pipefail
 set -x
 
-RELEASE_TAG=$1      # v1.2.3
-REPO_OWNER=$2       # org-ou-usuario
-REPO_NAME=$3        # meu-repo
-GITHUB_TOKEN=$4
-BUCKETNAME=$5
-ADICIONAL=${6:-}
+RELEASE_TAG=${1:-}
+REPO_OWNER=${2:-}
+REPO_NAME=${3:-}
+GITHUB_TOKEN=${4:-}
+BUCKETNAME=${5:-}
+EXTRA=${6:-}                 # renomeei para clareza
+ASSET_NAME=${7:-build.zip}   # permite escolher outro nome
 
-ROOTPATH=$BUCKETNAME/dist
-FILE_NAME=$ROOTPATH/build-$RELEASE_TAG.zip
-DISTDIR=$ROOTPATH/dist-$RELEASE_TAG
+[[ -z $RELEASE_TAG || $RELEASE_TAG == "none" ]] && {
+  echo '{"result":"tag none"}'; exit 0; }
 
-mkdir -p "$ROOTPATH"
+ROOT=$BUCKETNAME/dist
+ZIP=$ROOT/build-$RELEASE_TAG.zip
+DIST=$ROOT/dist-$RELEASE_TAG
 
-[[ "$RELEASE_TAG" == "none" ]] && { echo '{"result":"tag none"}'; exit 0; }
+mkdir -p "$ROOT"
 
-if [[ ! -f "$FILE_NAME" ]]; then
-  API_URL="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME"
+if [[ ! -f $ZIP ]]; then
+  API="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME"
   HDR=(-H "Authorization: Bearer $GITHUB_TOKEN"
        -H "Accept: application/vnd.github+json")
 
-  # 1. Descobre o asset id do build.zip nesse tag
-  ASSET_ID=$(curl -s "${HDR[@]}" \
-      "$API_URL/releases/tags/$RELEASE_TAG" |
-      jq -r '.assets[] | select(.name=="build.zip") | .id')
+  # --fail faz curl devolver exit 22 se a URL não existir
+  RESPONSE=$(curl --fail -s "${HDR[@]}" "$API/releases/tags/$RELEASE_TAG") \
+    || { echo '{"error":"release não encontrado"}'; exit 1; }
 
-  [[ -z "$ASSET_ID" ]] && {
-      echo "{\"error\":\"build.zip não encontrado no release $RELEASE_TAG\"}"
-      exit 1; }
+  # “? // empty” impede o erro de iterate-null
+  ASSET_ID=$(jq -r --arg FILE "$ASSET_NAME" \
+             '.assets? // [] | map(select(.name==$FILE)) | .[0].id' \
+             <<<"$RESPONSE")
 
-  # 2. Baixa o binário
-  curl -sL \
+  [[ -z $ASSET_ID || $ASSET_ID == "null" ]] && {
+    echo "{\"error\":\"asset $ASSET_NAME ausente em $RELEASE_TAG\"}"
+    exit 1; }
+
+  curl --fail -sL \
        -H "Authorization: Bearer $GITHUB_TOKEN" \
        -H "Accept: application/octet-stream" \
-       "$API_URL/releases/assets/$ASSET_ID" \
-       -o "$FILE_NAME"
+       "$API/releases/assets/$ASSET_ID" -o "$ZIP"
 fi
 
-# Descompacta
-rm -rf "$DISTDIR"
-mkdir -p "$DISTDIR"
-unzip -q -o "$FILE_NAME" -d "$DISTDIR"
+rm -rf  "$DIST" && mkdir -p "$DIST"
+unzip -q -o "$ZIP" -d "$DIST"
 
-if [[ -n "$ADICIONAL" ]]; then
-  rm -f "$DISTDIR"/{favicon.svg,logo.png}
+if [[ -n $EXTRA ]]; then
+  rm -f "$DIST"/{favicon.svg,logo.png}
 fi
 
 echo '{"result":"Download e unzip concluídos."}'
