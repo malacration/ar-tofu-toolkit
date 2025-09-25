@@ -10,17 +10,51 @@ terraform {
 
 locals {
   # Detecta Graviton pelo sufixo 'g' (t4g.*, c7g.*, m7g.*, etc.)
-  is_graviton = can(regex("^[a-z]+\\d+g\\.", var.instance_type))
+  is_graviton  = can(regex("^[a-z]+\\d+g\\.", var.instance_type))
   derived_arch = var.ami_arch != null ? var.ami_arch : (local.is_graviton ? "arm64" : "x86_64")
 
-  ssm_param = local.derived_arch == "arm64" ? "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id" : "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
+  # Ubuntu 24.04 LTS via SSM (gp3)
+  ssm_param = (local.derived_arch == "arm64"
+    ? "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
+    : "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id")
 
-  # Cloud-init: injeta chaves + instala Docker + executa extras
+  # Vamos anexar/formatar/montar SOMENTE se recebermos um volume_id
+  will_attach_data_volume = var.data_volume_existing_id != null
+
+  # Caminho estável do device (instâncias Nitro) por ID do volume
+  data_device_by_id = "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${var.data_volume_existing_id}"
+
+  # YAML condicional para format/mount (quando houver volume). Use parênteses no heredoc!
+  cloud_init_data_volume = local.will_attach_data_volume ? (
+    var.data_volume_auto_format_mount ? <<-YAML
+      disk_setup:
+        ${local.data_device_by_id}:
+          table_type: gpt
+          layout: true
+          overwrite: false
+
+      fs_setup:
+        - label: data
+          filesystem: ${var.data_volume_fs}
+          device: ${local.data_device_by_id}
+          overwrite: false
+
+      mounts:
+        - [ "/dev/disk/by-label/data", "${var.data_volume_mount_path}", "${var.data_volume_fs}", "defaults,nofail", "0", "2" ]
+    YAML
+    :
+    <<-YAML
+      mounts:
+        - [ "${local.data_device_by_id}", "${var.data_volume_mount_path}", "auto", "defaults,nofail", "0", "2" ]
+    YAML
+  ) : ""
+
+  # Cloud-init completo
   cloud_init = <<-EOT
     #cloud-config
     users:
-      - name: ec2-user
-        groups: [ wheel, docker ]
+      - name: ubuntu
+        groups: [ sudo, docker ]
         sudo: ["ALL=(ALL) NOPASSWD:ALL"]
         shell: /bin/bash
         ssh_authorized_keys:
@@ -29,64 +63,39 @@ locals {
     %{~ endfor ~}
 
     packages:
-      - docker
+      - docker.io
       - docker-compose-plugin
+
+    ${local.cloud_init_data_volume}
 
     runcmd:
       - [ bash, -lc, "systemctl enable --now docker" ]
-      - [ bash, -lc, "usermod -aG docker ec2-user || true" ]
-    %{ if trimspace(var.user_data_extra) != "" ~}
+      - [ bash, -lc, "usermod -aG docker ubuntu || true" ]
+      %{ if trimspace(var.user_data_extra) != "" ~}
       - [ bash, -lc, ${jsonencode(var.user_data_extra)} ]
-    %{ endif ~}
+      %{ endif ~}
+      # garante montagem mesmo se fs_setup/mounts falharem por timing
+      - [ bash, -lc, "mkdir -p ${var.data_volume_mount_path} && mount -a || true" ]
+      - [ bash, -lc, 'DEV="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${var.data_volume_existing_id}";
+          test -e "$DEV" || DEV="/dev/nvme1n1";
+          if ! lsblk -no FSTYPE "$DEV" | grep -qE "(xfs|ext4)"; then
+            mkfs.xfs -L data "$DEV";
+          fi;
+          mkdir -p ${var.data_volume_mount_path};
+          UUID=$(blkid -s UUID -o value "$DEV");
+          if ! grep -q "$UUID" /etc/fstab; then
+            echo "UUID=$UUID ${var.data_volume_mount_path} xfs defaults,nofail 0 2" >> /etc/fstab;
+          fi;
+          mount -a || true' ]
   EOT
-
-  will_attach_data_volume = var.attach_data_volume
-
-  # cria volume só quando precisa e não foi passado um existente
-  create_data_volume = local.will_attach_data_volume && var.data_volume_existing_id == null
-
-  # YAML condicional para format/mount
-  cloud_init_data_volume = var.data_volume_auto_format_mount && local.will_attach_data_volume ? <<-YAML
-    disk_setup:
-      ${var.data_volume_device_name}:
-        table_type: gpt
-        layout: true
-        overwrite: false
-
-    fs_setup:
-      - label: data
-        filesystem: ${var.data_volume_fs}
-        device: ${var.data_volume_device_name}
-        overwrite: false
-
-    mounts:
-      - [ "/dev/disk/by-label/data", "${var.data_volume_mount_path}", "${var.data_volume_fs}", "defaults,nofail", "0", "2" ]
-  YAML 
-    : ""
-
-  data_volume_id = var.data_volume_existing_id != null ? var.data_volume_existing_id : (
-    local.create_data_volume ? aws_ebs_volume.data[0].id : null
-  )
-
 }
 
-data "aws_ssm_parameter" "al2023" {
+# Buscar AMI
+data "aws_ssm_parameter" "ubuntu" {
   name = local.ssm_param
 }
 
-resource "aws_ebs_volume" "data" {
-  count             = local.create_data_volume ? 1 : 0
-  availability_zone = aws_instance.this.availability_zone
-  size              = var.data_volume_size_gb
-  type              = var.data_volume_type
-
-  # Aplica IOPS/throughput só quando fizer sentido (gp3/io1/io2)
-  iops       = contains(["gp3", "io1", "io2"], var.data_volume_type) ? var.data_volume_iops : null
-  throughput = var.data_volume_type == "gp3" ? var.data_volume_throughput : null
-
-  tags = merge(var.tags, { Name = "${var.name}-data" })
-}
-
+# SG básico
 resource "aws_security_group" "this" {
   name_prefix = "${var.name}-sg-"
   description = "Security group for ${var.name}"
@@ -114,26 +123,15 @@ resource "aws_security_group" "this" {
   tags = merge(var.tags, { Name = "${var.name}-sg" })
 }
 
-# Anexa o volume (quando habilitado)
-resource "aws_volume_attachment" "data" {
-  count       = local.will_attach_data_volume ? 1 : 0
-  device_name = var.data_volume_device_name
-  volume_id   = local.data_volume_id
-  instance_id = aws_instance.this.id
-
-  # Em geral deixe false (se true, impede destroy automático)
-  skip_destroy = false
-}
-
+# EC2
 resource "aws_instance" "this" {
-  ami                         = data.aws_ssm_parameter.al2023.value
+  ami                         = data.aws_ssm_parameter.ubuntu.value
   instance_type               = var.instance_type
   subnet_id                   = var.subnet_id
   vpc_security_group_ids      = [aws_security_group.this.id]
   associate_public_ip_address = var.associate_public_ip
   key_name                    = var.key_name
 
-  # cloud-init com chaves + docker
   user_data                   = local.cloud_init
   user_data_replace_on_change = true
 
@@ -147,4 +145,19 @@ resource "aws_instance" "this" {
   }
 
   tags = merge(var.tags, { Name = var.name })
+}
+
+# Attachment SEM count/for_each: sempre 1, com precondition exigindo o ID
+resource "aws_volume_attachment" "data" {
+  device_name  = var.data_volume_device_name
+  volume_id    = var.data_volume_existing_id
+  instance_id  = aws_instance.this.id
+  skip_destroy = false
+
+  lifecycle {
+    precondition {
+      condition     = var.data_volume_existing_id != null
+      error_message = "Para criar o attachment, 'data_volume_existing_id' não pode ser null."
+    }
+  }
 }

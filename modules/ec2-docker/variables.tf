@@ -51,7 +51,7 @@ variable "user_data_extra" {
 variable "root_volume_size_gb" {
   description = "Tamanho do volume raiz (GB)"
   type        = number
-  default     = 20
+  default     = 15
 }
 
 variable "ssh_ingress_cidrs" {
@@ -75,62 +75,32 @@ variable "tags" {
 
 //Volume
 
-variable "attach_data_volume" {
-  description = "Se true, anexa um volume de dados à instância"
-  type        = bool
-  default     = true
-}
-
 variable "data_volume_existing_id" {
-  description = "ID de um EBS existente para anexar (opcional). Se null, o módulo cria um novo volume"
+  description = "ID de um EBS existente para anexar (mesma AZ da instância). Se null, nada será anexado"
   type        = string
   default     = null
 }
 
-variable "data_volume_size_gb" {
-  description = "Tamanho do EBS criado quando não é informado um existente"
-  type        = number
-  default     = 20
-}
-
-variable "data_volume_type" {
-  description = "Tipo do EBS criado (gp3, gp2, io1, io2...)"
-  type        = string
-  default     = "gp3"
-}
-
-variable "data_volume_iops" {
-  description = "IOPS para volumes que suportam (ex.: gp3/io1/io2). Ignorado se não aplicável"
-  type        = number
-  default     = 3000
-}
-
-variable "data_volume_throughput" {
-  description = "Throughput (MB/s) para gp3. Ignorado se não aplicável"
-  type        = number
-  default     = 125
-}
-
 variable "data_volume_device_name" {
-  description = "Device name lógico para anexar (Nitro traduz para NVMe). Ex.: /dev/sdf"
+  description = "Device name lógico ao anexar (Nitro traduz p/ NVMe). Ex.: /dev/sdf"
   type        = string
   default     = "/dev/sdf"
 }
 
 variable "data_volume_mount_path" {
-  description = "Ponto de montagem para o volume de dados (se auto-format/mount)"
+  description = "Ponto de montagem para o volume de dados (se habilitar montagem)"
   type        = string
   default     = "/data"
 }
 
 variable "data_volume_fs" {
-  description = "Filesystem usado ao formatar o volume"
+  description = "Filesystem para formatar (apenas se auto_format=true)"
   type        = string
   default     = "xfs"
 }
 
 variable "data_volume_auto_format_mount" {
-  description = "Se true, formata e monta o volume via cloud-init"
-  type        = bool
-  default     = true
+  description = "Se true, formata (POTENCIALMENTE APAGA DADOS) e monta via cloud-init."
+  type    = bool
+  default = false
 }

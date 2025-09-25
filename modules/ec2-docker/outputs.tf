@@ -24,11 +24,6 @@ output "ami_id" {
 }
 
 output "data_volume_id" {
-  description = "ID do volume de dados anexado (existente ou criado)"
-  value       = local.data_volume_id
-}
-
-output "created_data_volume_id" {
-  description = "ID do volume criado pelo módulo (null se foi usado um existente ou se attach=false)"
-  value       = local.create_data_volume ? aws_ebs_volume.data[0].id : null
+  description = "ID do volume anexado (ou null se nada anexado)"
+  value       = var.data_volume_existing_id
 }
