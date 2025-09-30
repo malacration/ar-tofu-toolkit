@@ -37,7 +37,7 @@ variable "ami_arch" {
 }
 
 variable "ssh_authorized_keys" {
-  description = "Lista de chaves públicas (ssh-ed25519/ssh-rsa...) para o usuário ec2-user"
+  description = "Lista de chaves públicas (ssh-ed25519/ssh-rsa...) para o usuário ubuntu"
   type        = list(string)
   default     = []
 }
@@ -103,4 +103,17 @@ variable "data_volume_auto_format_mount" {
   description = "Se true, formata (POTENCIALMENTE APAGA DADOS) e monta via cloud-init."
   type    = bool
   default = false
+}
+
+variable "data_volume_owner_user"  { 
+  type = string
+  default = "ubuntu" 
+}
+variable "data_volume_owner_group" { 
+  type = string
+  default = "data" 
+}
+variable "data_volume_dir_mode"    { 
+  type = string
+  default = "2775" 
 }

@@ -21,73 +21,139 @@ locals {
   # Vamos anexar/formatar/montar SOMENTE se recebermos um volume_id
   will_attach_data_volume = var.data_volume_existing_id != null
 
+  # Corrige o ID para o caminho por-id (remove o hífen após 'vol-')
+  data_volume_id_for_byid = local.will_attach_data_volume ? replace(var.data_volume_existing_id, "vol-", "vol") : null
+
   # Caminho estável do device (instâncias Nitro) por ID do volume
-  data_device_by_id = "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${var.data_volume_existing_id}"
+  data_device_by_id = local.will_attach_data_volume ? "/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${local.data_volume_id_for_byid}" : null
 
-  # YAML condicional para format/mount (quando houver volume). Use parênteses no heredoc!
-  cloud_init_data_volume = local.will_attach_data_volume ? (
-    var.data_volume_auto_format_mount ? <<-YAML
-      disk_setup:
-        ${local.data_device_by_id}:
-          table_type: gpt
-          layout: true
-          overwrite: false
+  # --- SOMENTE write_files aqui, SEM runcmd (para não duplicar a chave) ---
+  # Importante: inicie "write_files:" na coluna 0 e indente os '-' com dois espaços.
+  cloud_init_data_volume = local.will_attach_data_volume ? (<<-YAML
+write_files:
+  - path: /usr/local/bin/attach-mount-data.sh
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      DEV_BY_ID="${local.data_device_by_id}"
+      MNT="${var.data_volume_mount_path}"
+      FSTYPE="${var.data_volume_fs}"
+      LABEL="data"
 
-      fs_setup:
-        - label: data
-          filesystem: ${var.data_volume_fs}
-          device: ${local.data_device_by_id}
-          overwrite: false
+      # aguarda o device aparecer (até 180s)
+      timeout=180
+      while [ $timeout -gt 0 ]; do
+        [ -e "$DEV_BY_ID" ] && break
+        /usr/bin/udevadm settle || true
+        sleep 2
+        timeout=$((timeout-2))
+      done
 
-      mounts:
-        - [ "/dev/disk/by-label/data", "${var.data_volume_mount_path}", "${var.data_volume_fs}", "defaults,nofail", "0", "2" ]
-    YAML
-    :
-    <<-YAML
-      mounts:
-        - [ "${local.data_device_by_id}", "${var.data_volume_mount_path}", "auto", "defaults,nofail", "0", "2" ]
-    YAML
-  ) : ""
+      if [ ! -e "$DEV_BY_ID" ]; then
+        echo "ERRO: device $DEV_BY_ID não apareceu" >&2
+        exit 1
+      fi
 
-  # Cloud-init completo
-  cloud_init = <<-EOT
-    #cloud-config
-    users:
-      - name: ubuntu
-        groups: [ sudo, docker ]
-        sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-        shell: /bin/bash
-        ssh_authorized_keys:
+      # cria filesystem se o disco estiver cru
+      if ! /usr/bin/lsblk -no FSTYPE "$DEV_BY_ID" | /usr/bin/grep -qE '(xfs|ext4|btrfs)'; then
+        case "$FSTYPE" in
+          xfs)   /sbin/mkfs.xfs   -L "$LABEL" "$DEV_BY_ID" ;;
+          ext4)  /sbin/mkfs.ext4  -L "$LABEL" -F "$DEV_BY_ID" ;;
+          btrfs) /sbin/mkfs.btrfs -L "$LABEL" -f "$DEV_BY_ID" ;;
+          *) echo "FSTYPE $FSTYPE não suportado"; exit 2 ;;
+        esac
+      fi
+
+      mkdir -p "$MNT"
+
+      # fstab por UUID para ficar imune a renomeação de device
+      UUID=$(/sbin/blkid -s UUID -o value "$DEV_BY_ID")
+      if ! /bin/grep -q "$UUID" /etc/fstab; then
+        echo "UUID=$UUID $MNT $FSTYPE defaults,nofail,x-systemd.device-timeout=180 0 2" >> /etc/fstab
+      fi
+
+      /usr/bin/systemctl daemon-reload || true
+      /bin/mount -a || /bin/mount "$MNT"
+      OS_USER="${var.data_volume_owner_user}"
+      OS_GROUP="${var.data_volume_owner_group}"
+      DIR_MODE="${var.data_volume_dir_mode}"
+
+      # cria grupo se não existir e adiciona o usuário
+      getent group "$OS_GROUP" >/dev/null || groupadd "$OS_GROUP"
+      usermod -aG "$OS_GROUP" "$OS_USER" || true
+
+      # aplica ownership/permissões no diretório raiz do mount
+      chown root:"$OS_GROUP" "$MNT"
+      chmod "$DIR_MODE" "$MNT"
+
+      # ACL default p/ que tudo novo herde rwx do grupo
+      if command -v setfacl >/dev/null 2>&1; then
+        setfacl -d -m g:"$OS_GROUP":rwx "$MNT" || true
+      fi
+
+      # Se o FS estiver vazio, pode ajustar tudo recursivamente sem medo:
+      if [ -z "$(ls -A "$MNT")" ]; then
+        chgrp -R "$OS_GROUP" "$MNT" || true
+        chmod -R g+rwX "$MNT" || true
+      fi
+
+  - path: /etc/systemd/system/attach-mount-data.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Formatar (se preciso) e montar o EBS de dados
+      Wants=network-online.target
+      After=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/attach-mount-data.sh
+      RemainAfterExit=yes
+      [Install]
+      WantedBy=multi-user.target
+YAML
+) : ""
+
+  # Cloud-init completo — AQUI vai o ÚNICO runcmd
+cloud_init = <<-YAML
+#cloud-config
+package_update: true
+users:
+  - name: ubuntu
+    groups: [ sudo, docker ]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
     %{~ for k in var.ssh_authorized_keys ~}
-          - ${k}
+      - ${k}
     %{~ endfor ~}
 
-    packages:
-      - docker.io
-      - docker-compose-plugin
+packages:
+  - docker.io
+  - docker-compose-plugin
+  - nvme-cli
+  - xfsprogs
+  - e2fsprogs
+  - btrfs-progs
+  - acl
 
-    ${local.cloud_init_data_volume}
+${indent(0, local.cloud_init_data_volume)}
 
-    runcmd:
-      - [ bash, -lc, "systemctl enable --now docker" ]
-      - [ bash, -lc, "usermod -aG docker ubuntu || true" ]
-      %{ if trimspace(var.user_data_extra) != "" ~}
-      - [ bash, -lc, ${jsonencode(var.user_data_extra)} ]
-      %{ endif ~}
-      # garante montagem mesmo se fs_setup/mounts falharem por timing
-      - [ bash, -lc, "mkdir -p ${var.data_volume_mount_path} && mount -a || true" ]
-      - [ bash, -lc, 'DEV="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${var.data_volume_existing_id}";
-          test -e "$DEV" || DEV="/dev/nvme1n1";
-          if ! lsblk -no FSTYPE "$DEV" | grep -qE "(xfs|ext4)"; then
-            mkfs.xfs -L data "$DEV";
-          fi;
-          mkdir -p ${var.data_volume_mount_path};
-          UUID=$(blkid -s UUID -o value "$DEV");
-          if ! grep -q "$UUID" /etc/fstab; then
-            echo "UUID=$UUID ${var.data_volume_mount_path} xfs defaults,nofail 0 2" >> /etc/fstab;
-          fi;
-          mount -a || true' ]
-  EOT
+runcmd:
+%{ if local.will_attach_data_volume ~}
+  - [ bash, -lc, "systemctl daemon-reload" ]
+  - [ bash, -lc, "systemctl enable attach-mount-data.service" ]
+  - [ bash, -lc, "systemctl start attach-mount-data.service || true" ]
+%{ endif ~}
+  - [ bash, -lc, "systemctl enable --now docker" ]
+  - [ bash, -lc, "mkdir -p /usr/lib/docker/cli-plugins" ]
+  - [ bash, -lc, "if [ -x /usr/libexec/docker/cli-plugins/docker-compose ] && [ ! -e /usr/lib/docker/cli-plugins/docker-compose ]; then ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/lib/docker/cli-plugins/docker-compose; fi" ]
+  - [ bash, -lc, "if docker compose version >/dev/null 2>&1; then echo 'Compose v2 OK'; elif command -v docker-compose >/dev/null 2>&1; then echo 'Usando docker-compose (v1)'; else apt-get update -y && apt-get install -y docker-compose || true; fi" ]
+  - [ bash, -lc, "usermod -aG docker ubuntu || true" ]
+%{ if trimspace(var.user_data_extra) != "" ~}
+  - [ bash, -lc, ${jsonencode(var.user_data_extra)} ]
+%{ endif ~}
+YAML
 }
 
 # Buscar AMI
@@ -147,7 +213,7 @@ resource "aws_instance" "this" {
   tags = merge(var.tags, { Name = var.name })
 }
 
-# Attachment SEM count/for_each: sempre 1, com precondition exigindo o ID
+# Attachment (com validações)
 resource "aws_volume_attachment" "data" {
   device_name  = var.data_volume_device_name
   volume_id    = var.data_volume_existing_id
