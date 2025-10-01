@@ -118,6 +118,15 @@ YAML
 cloud_init = <<-YAML
 #cloud-config
 package_update: true
+
+apt:
+  sources:
+    docker:
+      source: "deb https://download.docker.com/linux/ubuntu $RELEASE stable"
+      # importa a chave direto do keyserver (fingerprint oficial do Docker)
+      keyid: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+      keyserver: "keyserver.ubuntu.com"
+
 users:
   - name: ubuntu
     groups: [ sudo, docker ]
@@ -129,7 +138,10 @@ users:
     %{~ endfor ~}
 
 packages:
-  - docker.io
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
   - docker-compose-plugin
   - nvme-cli
   - xfsprogs
@@ -146,9 +158,6 @@ runcmd:
   - [ bash, -lc, "systemctl start attach-mount-data.service || true" ]
 %{ endif ~}
   - [ bash, -lc, "systemctl enable --now docker" ]
-  - [ bash, -lc, "mkdir -p /usr/lib/docker/cli-plugins" ]
-  - [ bash, -lc, "if [ -x /usr/libexec/docker/cli-plugins/docker-compose ] && [ ! -e /usr/lib/docker/cli-plugins/docker-compose ]; then ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/lib/docker/cli-plugins/docker-compose; fi" ]
-  - [ bash, -lc, "if docker compose version >/dev/null 2>&1; then echo 'Compose v2 OK'; elif command -v docker-compose >/dev/null 2>&1; then echo 'Usando docker-compose (v1)'; else apt-get update -y && apt-get install -y docker-compose || true; fi" ]
   - [ bash, -lc, "usermod -aG docker ubuntu || true" ]
 %{ if trimspace(var.user_data_extra) != "" ~}
   - [ bash, -lc, ${jsonencode(var.user_data_extra)} ]

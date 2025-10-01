@@ -17,6 +17,9 @@ locals {
   host = (var.use_public_ip
     ? coalesce(data.aws_instance.target.public_ip, data.aws_instance.target.public_dns)
     : coalesce(data.aws_instance.target.private_ip, data.aws_instance.target.private_dns))
+
+  app_dir              = basename(trim(var.local_path, "/"))
+  effective_remote_dir = "${trimsuffix(var.remote_dir, "/")}/${local.app_dir}"
 }
 
 resource "null_resource" "deploy" {
@@ -49,10 +52,24 @@ resource "null_resource" "deploy" {
     destination = "${var.remote_dir}/"
   }
 
-  # 3) Deploy (pull opcional + up -d --force-recreate + prune opcional)
-  provisioner "remote-exec" {
-    inline = [
-      "sudo bash -lc 'set -Eeuo pipefail; cd ${var.remote_dir}; ${var.run_pull ? "docker compose -f ${var.remote_dir}/${var.compose_file} pull; " : ""}docker compose -f ${var.remote_dir}/${var.compose_file} up -d --force-recreate; ${var.prune_images ? "docker image prune -f || true; " : ""}'"
-    ]
-  }
+
+provisioner "remote-exec" {
+  inline = [<<-EOF
+      sudo bash -lc 'set -Eeuo pipefail;
+      echo "[deploy] aguardando cloud-init...";
+      for i in {1..300}; do cloud-init status 2>/dev/null | grep -qE "done|status: done" && break; sleep 2; done; cloud-init status || true;
+
+      cd ${var.remote_dir};
+
+      %{ if var.run_pull }
+      docker compose -f ${local.effective_remote_dir}/${var.compose_file} pull;
+      %{ endif }
+
+      docker compose -f ${local.effective_remote_dir}/${var.compose_file} up -d --force-recreate;
+
+      echo "[deploy] OK"'
+    EOF
+  ]
+}
+
 }
