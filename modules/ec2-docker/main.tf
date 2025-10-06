@@ -18,8 +18,9 @@ locals {
     ? "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
     : "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id")
 
-  # Vamos anexar/formatar/montar SOMENTE se recebermos um volume_id
-  will_attach_data_volume = var.data_volume_existing_id != null
+  creating_new = var.create_data_volume && var.data_volume_existing_id == null
+  will_attach_data_volume  = var.data_volume_existing_id != null || local.creating_new
+
 
   # Corrige o ID para o caminho por-id (remove o hífen após 'vol-')
   data_volume_id_for_byid = local.will_attach_data_volume ? replace(var.data_volume_existing_id, "vol-", "vol") : null
@@ -224,15 +225,9 @@ resource "aws_instance" "this" {
 
 # Attachment (com validações)
 resource "aws_volume_attachment" "data" {
+  count             = local.creating_new ? 1 : 0
   device_name  = var.data_volume_device_name
   volume_id    = var.data_volume_existing_id
   instance_id  = aws_instance.this.id
   skip_destroy = false
-
-  lifecycle {
-    precondition {
-      condition     = var.data_volume_existing_id != null
-      error_message = "Para criar o attachment, 'data_volume_existing_id' não pode ser null."
-    }
-  }
 }
