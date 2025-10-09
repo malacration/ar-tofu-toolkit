@@ -8,6 +8,10 @@ terraform {
   }
 }
 
+data "aws_subnet" "da_instancia" {
+  id = var.subnet_id
+}
+
 locals {
   # Detecta Graviton pelo sufixo 'g' (t4g.*, c7g.*, m7g.*, etc.)
   is_graviton  = can(regex("^[a-z]+\\d+g\\.", var.instance_type))
@@ -175,7 +179,7 @@ data "aws_ssm_parameter" "ubuntu" {
 resource "aws_security_group" "this" {
   name_prefix = "${var.name}-sg"
   description = "Security group for ${var.name}"
-  vpc_id      = var.vpc_id
+  vpc_id      = data.aws_subnet.vpc_id
 
   egress {
     protocol         = "-1"
