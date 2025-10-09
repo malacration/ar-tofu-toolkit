@@ -12,7 +12,21 @@ data "aws_instance" "target" {
 
 locals {
   files_in_dir = fileset(var.local_path, "**")
-  content_hash = sha1(join("", [for f in local.files_in_dir : filesha256("${var.local_path}/${f}")]))
+
+  # Renderiza o compose local como template (usa o que está em var.local_path/var.compose_file)
+  rendered_compose = templatefile(
+    "${var.local_path}/${var.compose_file}",
+    var.template_vars
+  )
+
+  # Hash considera todo o diretório + conteúdo renderizado (assim, mudar só "domain" dispara deploy)
+  content_hash = sha1(join(
+    "",
+    concat(
+      [for f in local.files_in_dir : filesha256("${var.local_path}/${f}")],
+      [local.rendered_compose]
+    )
+  ))
 
   host = (var.use_public_ip
     ? coalesce(data.aws_instance.target.public_ip, data.aws_instance.target.public_dns)
@@ -20,6 +34,11 @@ locals {
 
   app_dir              = basename(trim(var.local_path, "/"))
   effective_remote_dir = "${trimsuffix(var.remote_dir, "/")}/${local.app_dir}"
+}
+
+resource "local_file" "rendered_compose" {
+  filename = "${path.module}/.rendered/${local.app_dir}/${var.compose_file}"
+  content  = local.rendered_compose
 }
 
 resource "null_resource" "deploy" {
@@ -36,7 +55,6 @@ resource "null_resource" "deploy" {
     host        = local.host
     user        = var.ssh_user
     private_key = var.ssh_private_key
-    # se precisar de bastion, adicione aqui as chaves bastion_*
   }
 
   # 1) Preparação do diretório remoto
@@ -46,15 +64,21 @@ resource "null_resource" "deploy" {
     ]
   }
 
-  # 2) Copia a pasta local inteira para a instância
+  # 2) Copia a pasta local inteira
   provisioner "file" {
     source      = var.local_path
     destination = "${var.remote_dir}/"
   }
 
+  # 2.1) Sobrescreve o compose remoto com o arquivo já renderizado
+  provisioner "file" {
+    source      = local_file.rendered_compose.filename
+    destination = "${local.effective_remote_dir}/${var.compose_file}"
+  }
 
-provisioner "remote-exec" {
-  inline = [<<-EOF
+  # 3) Sobe o stack
+  provisioner "remote-exec" {
+    inline = [<<-EOF
       sudo bash -lc 'set -Eeuo pipefail;
       echo "[deploy] aguardando cloud-init...";
       for i in {1..300}; do cloud-init status 2>/dev/null | grep -qE "done|status: done" && break; sleep 2; done; cloud-init status || true;
@@ -69,7 +93,6 @@ provisioner "remote-exec" {
 
       echo "[deploy] OK"'
     EOF
-  ]
-}
-
+    ]
+  }
 }

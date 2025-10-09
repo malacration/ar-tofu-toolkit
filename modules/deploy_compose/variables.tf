@@ -57,6 +57,14 @@ variable "force_redeploy_nonce" {
   description = "Troque o valor para forçar reexecução do deploy"
 }
 
+
+variable "template_vars" {
+  description = "Variáveis adicionais para usar nos templates (sobrescrevem chaves padrão)"
+  type        = map(string)
+  default     = {}
+}
+
+
 # Se precisar de bastion, descomente no connection acima e defina:
 # variable "bastion_host"        { type = string, default = null }
 # variable "bastion_user"        { type = string, default = "ubuntu" }
