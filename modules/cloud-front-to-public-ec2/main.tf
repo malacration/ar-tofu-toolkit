@@ -7,12 +7,9 @@ data "aws_subnet" "da_instancia" {
 }
 
 data "aws_acm_certificate" "this" {
-  domain       = var.domain                 # ex.: n8n.artempestade.com.br
-  statuses     = ["ISSUED"]                 # só certificados utilizáveis
-  types        = ["AMAZON_ISSUED"]          # ou ["IMPORTED"] se só aceitar importados
-  most_recent  = true                       # se houver mais de um, pega o mais recente
-  # opcional: filtrar por tags se você usa tagging consistente
-  # tags = { "Project" = "NotaAgil", "Env" = "prod" }
+  domain       = "*"+var.domain
+  statuses     = ["ISSUED"]
+  most_recent  = true
 }
 
 data "aws_cloudfront_cache_policy" "caching_disabled" {
@@ -25,8 +22,8 @@ data "aws_cloudfront_origin_request_policy" "all_viewer" {
 
 resource "aws_security_group" "web-public" {
   name_prefix = "web"
-  name = "CloudFront-${var.domain}"
-  description = "For your cloudfront - ${var.domain}"
+  name = "CloudFront-${var.sub-domain}.${var.domain}"
+  description = "For your cloudfront - ${var.sub-domain}.${var.domain}"
   vpc_id      = data.aws_subnet.da_instancia.vpc_id
 }
 
@@ -54,7 +51,7 @@ resource "aws_network_interface_sg_attachment" "extra" {
 resource "aws_cloudfront_distribution" "cf_ec2" {
     enabled         = true
     is_ipv6_enabled = true
-    aliases = [var.domain]
+    aliases = ["${var.sub-domain}.${var.domain}"]
     price_class = "PriceClass_100"
 
     origin {

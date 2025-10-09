@@ -8,6 +8,11 @@ variable "domain" {
     type        = string
 }
 
+variable "sub-domain" {
+    description = "sub dominio para publicação"
+    type        = string
+}
+
 variable "instance_id_ec2"{
     description = "instancia id. Ec2"
     type        = string

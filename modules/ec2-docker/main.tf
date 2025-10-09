@@ -173,7 +173,7 @@ data "aws_ssm_parameter" "ubuntu" {
 
 # SG básico
 resource "aws_security_group" "this" {
-  name_prefix = "${var.name}-sg-"
+  name_prefix = "${var.name}-sg"
   description = "Security group for ${var.name}"
   vpc_id      = var.vpc_id
 
