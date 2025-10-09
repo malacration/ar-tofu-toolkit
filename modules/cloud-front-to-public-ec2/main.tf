@@ -108,13 +108,13 @@ resource "aws_cloudfront_distribution" "cf_ec2" {
 }
 
 
-resource "aws_route53_record" "app_cf" {
-  zone_id = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
-  name    = local.full_dns_name
-  type    = "A"
-  alias {
-    name                   = aws_cloudfront_distribution.cf_ec2.domain_name
-    zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
+# resource "aws_route53_record" "app_cf" {
+#   zone_id = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
+#   name    = local.full_dns_name
+#   type    = "A"
+#   alias {
+#     name                   = aws_cloudfront_distribution.cf_ec2.domain_name
+#     zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
+#     evaluate_target_health = false
+#   }
+# }
