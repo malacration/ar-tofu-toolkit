@@ -1,3 +1,7 @@
+locals {
+  full_dns_name = "${var.sub-domain}.${var.domain}"
+}
+
 data "aws_instance" "instancia"{
     instance_id = var.instance_id_ec2
 }
@@ -50,7 +54,7 @@ resource "aws_network_interface_sg_attachment" "extra" {
 resource "aws_cloudfront_distribution" "cf_ec2" {
     enabled         = true
     is_ipv6_enabled = true
-    aliases = ["${var.sub-domain}.${var.domain}"]
+    aliases = [local.full_dns_name]
     price_class = "PriceClass_100"
 
     origin {
@@ -100,7 +104,7 @@ resource "aws_cloudfront_distribution" "cf_ec2" {
 
 resource "aws_route53_record" "app_cf" {
   zone_id = var.zone_id
-  name    = var.domain
+  name    = local.full_dns_name
   type    = "A"
   alias {
     name                   = aws_cloudfront_distribution.cf_ec2.domain_name
