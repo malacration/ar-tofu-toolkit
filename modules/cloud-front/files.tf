@@ -17,7 +17,7 @@ data "external" "download_release" {
     var.repo_owner,
     var.repo_name,
     var.github_token,
-    "${abspath(path.root)}/${local.full_name}",
+    "${abspath(path.root)}/dist/${local.full_name}",
     var.path_adicional != null ? var.path_adicional : ""
   ]
 }
@@ -40,7 +40,7 @@ locals {
     "ico"    = "image/x-icon"
   }
   
-  distPath = var.release_version == "none" ? "${abspath(path.root)}/${local.full_name}/dist" : "${abspath(path.root)}/${local.full_name}/dist/dist-${var.release_version}"
+  distPath = var.release_version == "none" ? "${abspath(path.root)}/dist/${local.full_name}" : "${abspath(path.root)}/dist/${local.full_name}/dist-${var.release_version}"
 }
 
 resource "aws_s3_object" "files" {

@@ -13,7 +13,7 @@ ASSET_NAME=${7:-build.zip}
 [[ -z $RELEASE_TAG || $RELEASE_TAG == "none" ]] && {
   echo '{"result":"tag none"}'; exit 0; }
 
-ROOT=$BUCKETNAME/dist
+ROOT=$BUCKETNAME
 ZIP=$ROOT/build-$RELEASE_TAG.zip
 DIST=$ROOT/dist-$RELEASE_TAG
 mkdir -p "$ROOT"

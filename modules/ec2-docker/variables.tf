@@ -1,7 +1,6 @@
 variable "name" {
   description = "Prefixo/Name tag da instância"
   type        = string
-  default     = "docker-ec2"
 }
 
 variable "vpc_id" {
