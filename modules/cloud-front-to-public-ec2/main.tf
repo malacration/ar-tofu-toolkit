@@ -2,11 +2,10 @@ locals {
   full_dns_name = "${var.sub-domain}.${var.domain}"
 }
 
-# Opção para recuperar a zone id
-# data "aws_route53_zone" "this" {
-#   name         = "${var.domain}."
-#   private_zone = false
-# }
+data "aws_route53_zone" "this" {
+  name         = "${var.domain}."
+  private_zone = false
+}
 
 data "aws_instance" "instancia"{
     instance_id = var.instance_id_ec2
@@ -93,13 +92,6 @@ resource "aws_cloudfront_distribution" "cf_ec2" {
         max_ttl     = 0
     }
 
-    # viewer_certificate {
-    #     acm_certificate_arn             = var.zone_id != "" ? "arn:aws:acm:us-east-1:459109365497:certificate/b79bee47-1cc2-4d2a-88b7-6803dd08debd" : null
-    #     ssl_support_method              = var.zone_id != "" ? "sni-only" : null
-    #     minimum_protocol_version        = var.zone_id != "" ? "TLSv1.2_2021" : null
-    #     cloudfront_default_certificate  = var.zone_id != "" ? false : true
-    # }
-
     viewer_certificate {
         acm_certificate_arn            = data.aws_acm_certificate.this.arn
         ssl_support_method             = "sni-only"
@@ -108,13 +100,13 @@ resource "aws_cloudfront_distribution" "cf_ec2" {
 }
 
 
-# resource "aws_route53_record" "app_cf" {
-#   zone_id = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
-#   name    = local.full_dns_name
-#   type    = "A"
-#   alias {
-#     name                   = aws_cloudfront_distribution.cf_ec2.domain_name
-#     zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
+resource "aws_route53_record" "app_cf" {
+  zone_id = data.aws_route53_zone.this.zone_id
+  name    = local.full_dns_name
+  type    = "A"
+  alias {
+    name                   = aws_cloudfront_distribution.cf_ec2.domain_name
+    zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
