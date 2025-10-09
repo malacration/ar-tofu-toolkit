@@ -21,8 +21,7 @@ data "aws_cloudfront_origin_request_policy" "all_viewer" {
 }
 
 resource "aws_security_group" "web-public" {
-  name_prefix = "web"
-  name = "CloudFront-${var.sub-domain}.${var.domain}"
+  name        = "CloudFront-${var.sub-domain}.${var.domain}"
   description = "For your cloudfront - ${var.sub-domain}.${var.domain}"
   vpc_id      = data.aws_subnet.da_instancia.vpc_id
 }
