@@ -179,7 +179,7 @@ data "aws_ssm_parameter" "ubuntu" {
 resource "aws_security_group" "this" {
   name_prefix = "${var.name}-sg"
   description = "Security group for ${var.name}"
-  vpc_id      = data.aws_subnet.vpc_id
+  vpc_id      = data.aws_subnet.da_instancia.vpc_id
 
   egress {
     protocol         = "-1"
