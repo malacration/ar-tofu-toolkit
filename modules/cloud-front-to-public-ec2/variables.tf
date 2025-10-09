@@ -1,8 +1,3 @@
-variable "zone_id" {
-    description = "id da zona de disponibilidade"
-    type        = string
-}
-
 variable "domain" {
     description = "dominio para publicação do cloud-front"
     type        = string

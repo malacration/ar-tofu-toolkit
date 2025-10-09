@@ -2,6 +2,12 @@ locals {
   full_dns_name = "${var.sub-domain}.${var.domain}"
 }
 
+# Opção para recuperar a zone id
+# data "aws_route53_zone" "this" {
+#   name         = "${var.domain}."
+#   private_zone = false
+# }
+
 data "aws_instance" "instancia"{
     instance_id = var.instance_id_ec2
 }
@@ -103,11 +109,11 @@ resource "aws_cloudfront_distribution" "cf_ec2" {
 
 
 resource "aws_route53_record" "app_cf" {
-  zone_id = var.zone_id
+  zone_id = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
   name    = local.full_dns_name
   type    = "A"
   alias {
-    name                   = local.full_dns_name
+    name                   = aws_cloudfront_distribution.cf_ec2.domain_name
     zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
     evaluate_target_health = false
   }
