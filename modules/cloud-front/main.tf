@@ -92,7 +92,6 @@ output "all" {
     dominio = var.zone_id == "" || var.full_dns_name == "" ? aws_cloudfront_distribution.distribution.domain_name : var.full_dns_name
     distPath = local.distPath
   }
-  
 }
 
 # resource "null_resource" "invalidate_cache_cloudfront" {
