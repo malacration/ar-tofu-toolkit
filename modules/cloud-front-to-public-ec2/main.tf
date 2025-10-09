@@ -7,7 +7,7 @@ data "aws_subnet" "da_instancia" {
 }
 
 data "aws_acm_certificate" "this" {
-  domain       = "*"+var.domain
+  domain       = "*.${var.domain}"
   statuses     = ["ISSUED"]
   most_recent  = true
 }
