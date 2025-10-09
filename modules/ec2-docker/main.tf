@@ -116,6 +116,10 @@ write_files:
       RemainAfterExit=yes
       [Install]
       WantedBy=multi-user.target
+  - path: /etc/udev/rules.d/99-ebs-auto-mount.rules
+    permissions: '0644'
+    content: |
+      ACTION=="add", SUBSYSTEM=="block", KERNEL=="nvme*n1", ENV{DEVTYPE}=="disk", RUN+="/bin/systemctl start attach-mount-data.service"
 YAML
 ) : ""
 
@@ -159,6 +163,8 @@ ${indent(0, local.cloud_init_data_volume)}
 runcmd:
 %{ if local.will_attach_data_volume ~}
   - [ bash, -lc, "systemctl daemon-reload" ]
+  - [ bash, -lc, "udevadm control --reload" ]
+  - [ bash, -lc, "udevadm trigger" ]
   - [ bash, -lc, "systemctl enable attach-mount-data.service" ]
   - [ bash, -lc, "systemctl start attach-mount-data.service || true" ]
 %{ endif ~}
@@ -225,6 +231,10 @@ resource "aws_instance" "this" {
   }
 
   tags = merge(var.tags, { Name = var.name })
+
+  lifecycle {
+    ignore_changes = [vpc_security_group_ids]
+  }
 }
 
 # Attachment (com validações)

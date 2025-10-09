@@ -67,13 +67,10 @@ variable "tags" {
 }
 
 
-//Volume
-
 variable "create_data_volume" {
   type    = bool
   default = false
 }
-
 
 variable "data_volume_existing_id" {
   description = "ID de um EBS existente para anexar (mesma AZ da instância). Se null, nada será anexado"
