@@ -2,6 +2,10 @@ data "aws_instance" "instancia"{
     instance_id = var.instance_id_ec2
 }
 
+data "aws_subnet" "da_instancia" {
+  id = data.aws_instance.instancia.subnet_id
+}
+
 data "aws_acm_certificate" "this" {
   domain       = var.domain                 # ex.: n8n.artempestade.com.br
   statuses     = ["ISSUED"]                 # só certificados utilizáveis
@@ -23,7 +27,7 @@ resource "aws_security_group" "web-public" {
   name_prefix = "web"
   name = "CloudFront-${var.domain}"
   description = "For your cloudfront - ${var.domain}"
-  vpc_id      = var.vcp_id
+  vpc_id      = data.aws_subnet.da_instancia.vpc_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web-public-443" {

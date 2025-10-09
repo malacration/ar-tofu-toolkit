@@ -3,12 +3,6 @@ variable "zone_id" {
     type        = string
 }
 
-variable "vcp_id" {
-    description = "id for your vcp"
-    type        = string
-}
-
-
 variable "domain" {
     description = "dominio para publicação do cloud-front"
     type        = string
