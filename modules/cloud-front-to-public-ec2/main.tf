@@ -107,7 +107,7 @@ resource "aws_route53_record" "app_cf" {
   name    = local.full_dns_name
   type    = "A"
   alias {
-    name                   = aws_cloudfront_distribution.cf_ec2.domain_name
+    name                   = local.full_dns_name
     zone_id                = aws_cloudfront_distribution.cf_ec2.hosted_zone_id
     evaluate_target_health = false
   }
