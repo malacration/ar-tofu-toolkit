@@ -1,0 +1,25 @@
+# OpenTofu/Terraform working directories
+**/.terraform/
+
+# OpenTofu/Terraform state
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# OpenTofu/Terraform local variables and plans
+*.tfvars
+*.tfvars.json
+*.tfplan
+tfplan
+plan.out
+
+# OpenTofu/Terraform local overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# OpenTofu/Terraform dependency locks generated during local validation
+.terraform.lock.hcl
+**/.terraform.lock.hcl
