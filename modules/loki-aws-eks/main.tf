@@ -144,6 +144,9 @@ resource "helm_release" "loki" {
   namespace        = var.namespace
   create_namespace = var.create_namespace
 
+  force_update = true
+  timeout      = 600
+
   values = [
     yamlencode(local.generated_values),
     yamlencode(var.values_override),

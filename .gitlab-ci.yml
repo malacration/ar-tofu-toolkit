@@ -72,6 +72,7 @@ publish-modules:
       publish_module modules/deploy_compose deploy-compose aws
       publish_module modules/ec2-docker ec2-docker aws
       publish_module modules/fluentbit-k8s fluentbit-k8s helm
+      publish_module modules/grafana-k8s grafana-k8s helm
       publish_module modules/loki-aws-eks loki-aws-eks aws
       publish_module modules/smtp_email_account smtp-email-account aws
       publish_module modules/subnet-by-name subnet-by-name aws

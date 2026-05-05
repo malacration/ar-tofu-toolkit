@@ -48,3 +48,30 @@ output "aws_account_id" {
   description = "Conta AWS usada pelo provider."
   value       = data.aws_caller_identity.current.account_id
 }
+
+output "name" {
+  description = "Nome sugerido para o datasource do Loki no Grafana."
+  value = var.eks_cluster_name
+}
+
+output "grafana_datasource" {
+  description = "Objeto compativel com module.grafana.loki_datasources com os dados efetivamente conhecidos por este modulo."
+  value = {
+    name             = var.eks_cluster_name
+    uid              = null
+    url              = "http://${helm_release.loki.name}-gateway.${var.namespace}.svc.cluster.local:80"
+    is_default       = true
+    editable         = true
+    json_data = {
+      httpHeaderName1 = "X-Scope-OrgID"
+    }
+    secure_json_data = {
+      httpHeaderValue1 = var.grafana_tenant_id
+    }
+  }
+}
+
+output "grafana_tenant_id" {
+  description = "Tenant ID default exposto para integracoes como o datasource do Grafana."
+  value       = var.grafana_tenant_id
+}

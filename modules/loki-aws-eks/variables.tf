@@ -109,3 +109,9 @@ variable "values_override" {
   type        = any
   default     = {}
 }
+
+variable "grafana_tenant_id" {
+  description = "Tenant ID default exposto no datasource para o Grafana via header X-Scope-OrgID."
+  type        = string
+  default     = "self-monitoring"
+}
