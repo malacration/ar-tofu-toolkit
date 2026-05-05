@@ -70,6 +70,8 @@ publish-modules:
       publish_module modules/cloud-front-iam cloud-front-iam aws
       publish_module modules/cloud-front-to-public-ec2 cloud-front-to-public-ec2 aws
       publish_module modules/deploy_compose deploy-compose aws
+      publish_module modules/dynatrace-eks dynatrace-eks aws
+      publish_module modules/dynatrace-k8s dynatrace-k8s helm
       publish_module modules/ec2-docker ec2-docker aws
       publish_module modules/fluentbit-k8s fluentbit-k8s helm
       publish_module modules/grafana-k8s grafana-k8s helm
