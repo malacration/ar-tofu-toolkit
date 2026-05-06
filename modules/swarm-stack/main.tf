@@ -7,7 +7,21 @@ locals {
   compose_file_path                 = "${local.artifact_source_dir}/${var.compose_file}"
   artifact_dir_name                 = basename(local.artifact_source_dir)
   artifact_files                    = sort(fileset(local.artifact_source_dir, "**"))
-  artifact_hash                     = sha256(join("\n", [for file in local.artifact_files : "${file}:${filesha256("${local.artifact_source_dir}/${file}")}"]))
+  artifact_hash                     = sha256(join("\n", concat(
+    [for file in local.artifact_files : "${file}:${filesha256("${local.artifact_source_dir}/${file}")}"],
+    [for path in sort(keys(var.extra_files)) : "extra:${path}:${sha256(var.extra_files[path])}"]
+  )))
+  extra_files_b64                   = { for path, content in var.extra_files : path => base64encode(content) }
+  extra_files_upload_script         = length(var.extra_files) == 0 ? "" : join("\n      ", flatten([
+    [
+      "EXTRA_TMP=$(mktemp -d)",
+      "cleanup_extra() { rm -rf \"$EXTRA_TMP\"; }",
+      "trap cleanup_extra EXIT",
+    ],
+    [for rel_path, b64 in local.extra_files_b64 :
+      "mkdir -p \"$(dirname \"$EXTRA_TMP/${rel_path}\")\"; printf '%s' '${b64}' | base64 -d > \"$EXTRA_TMP/${rel_path}\"; run_scp_file \"$EXTRA_TMP/${rel_path}\" '${rel_path}'"
+    ]
+  ]))
   env_file_value                    = var.env_file != null ? var.env_file : ""
   env_file_path                     = local.env_file_value != "" ? "${local.artifact_source_dir}/${local.env_file_value}" : null
   env_file_lines                    = local.env_file_path != null && fileexists(local.env_file_path) ? split("\n", file(local.env_file_path)) : []
@@ -185,8 +199,22 @@ resource "terraform_data" "deploy" {
         fi
       }
 
+      run_scp_file() {
+        local src="$1"
+        local rel_path="$2"
+        local remote_dir
+        remote_dir=$(dirname "$REMOTE_RELEASE_DIR/$ARTIFACT_DIR_NAME/$rel_path")
+        run_ssh "mkdir -p \"$remote_dir\""
+        if command -v timeout >/dev/null 2>&1; then
+          timeout "$SSH_TIMEOUT" scp "$${scp_args[@]}" "$src" "$USER@$HOST:$REMOTE_RELEASE_DIR/$ARTIFACT_DIR_NAME/$rel_path"
+        else
+          scp "$${scp_args[@]}" "$src" "$USER@$HOST:$REMOTE_RELEASE_DIR/$ARTIFACT_DIR_NAME/$rel_path"
+        fi
+      }
+
       run_ssh "set -e; command -v docker >/dev/null 2>&1 || { echo 'docker nao encontrado no host remoto'; exit 1; }; docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}}' | grep -q '^active true$' || { echo 'o host remoto precisa ser um manager ativo do Docker Swarm'; exit 1; }; mkdir -p '$REMOTE_BASE_DIR'; rm -rf '$REMOTE_RELEASE_DIR'; mkdir -p '$REMOTE_RELEASE_DIR'"
       run_scp
+      ${local.extra_files_upload_script}
 
       run_ssh "DEPLOY_BASE='$REMOTE_RELEASE_DIR' COMPOSE_FILE='$COMPOSE_FILE' ARTIFACT_DIR='$ARTIFACT_DIR_NAME' ENV_FILE='$ENV_FILE' STACK_NAME='$STACK_NAME' bash -s" <<'REMOTE'
       set -e

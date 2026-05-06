@@ -58,3 +58,18 @@ No manager remoto:
 - Para imagens privadas, use `with_registry_auth = true` e garanta que o manager ja tenha autenticacao valida no registry.
 - O arquivo `env_file`, quando usado, deve ser shell-compatible porque ele e carregado com `. arquivo.env`.
 - Para sincronizar deploy de stack com criacao ou troca da VM, use `deployment_triggers` com valores da infra, como `instance_id`, `private_ip`, `launch_template_version` ou outro identificador relevante. `depends_on` sozinho so garante a ordem.
+- `extra_files` aceita um mapa de caminho relativo → conteudo como string. Use junto com `templatefile()`, `jsonencode()` ou qualquer funcao que produza texto para adicionar arquivos gerados programaticamente ao artefato sem precisar gravá-los em disco. O conteudo e transmitido via base64 por SSH, portanto e seguro para qualquer tipo de texto. Mudancas em `extra_files` automaticamente disparam redeploy via `artifact_hash`.
+
+```hcl
+module "minha_stack" {
+  source        = "../../modules/swarm-stack"
+  stack_name    = "minha-app"
+  artifact_path = "${path.module}/stacks/minha-app"
+  connection    = { manager_host = var.manager_host }
+
+  extra_files = {
+    "nginx.conf"         = templatefile("${path.module}/templates/nginx.conf.tftpl", { domain = var.domain })
+    "config/app.json"    = jsonencode({ env = var.env, version = var.app_version })
+  }
+}
+```
