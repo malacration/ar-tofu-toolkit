@@ -24,23 +24,27 @@ data "external" "download_release" {
 
 
 locals {
+  is_main_branch_deploy = var.release_version == "-1"
+
   content_type = {
-    "html"   = "text/html",
-    "css"    = "text/css",
-    "js"     = "application/javascript",
-    "png"    = "image/png",
-    "jpg"    = "image/jpeg",
-    "jpeg"   = "image/jpeg",
-    "svg"    = "image/svg+xml",
-    "woff"   = "font/woff",
-    "woff2"  = "font/woff2",
-    "eot"    = "application/vnd.ms-fontobject",
-    "ttf"    = "font/ttf",
-    "bmp"    = "image/bmp",
-    "ico"    = "image/x-icon"
+    "html"  = "text/html",
+    "css"   = "text/css",
+    "js"    = "application/javascript",
+    "png"   = "image/png",
+    "jpg"   = "image/jpeg",
+    "jpeg"  = "image/jpeg",
+    "svg"   = "image/svg+xml",
+    "woff"  = "font/woff",
+    "woff2" = "font/woff2",
+    "eot"   = "application/vnd.ms-fontobject",
+    "ttf"   = "font/ttf",
+    "bmp"   = "image/bmp",
+    "ico"   = "image/x-icon"
   }
-  
-  distPath = var.release_version == "none" ? "${abspath(path.root)}/dist/${local.full_name}" : "${abspath(path.root)}/dist/${local.full_name}/dist-${var.release_version}"
+
+  distPath = var.release_version == "none" ? "${abspath(path.root)}/dist/${local.full_name}" : (
+    local.is_main_branch_deploy ? "${abspath(path.root)}/dist/${local.full_name}/dist-main" : "${abspath(path.root)}/dist/${local.full_name}/dist-${var.release_version}"
+  )
 }
 
 resource "aws_s3_object" "files" {
