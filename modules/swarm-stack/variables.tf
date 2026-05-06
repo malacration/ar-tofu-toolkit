@@ -127,13 +127,6 @@ variable "traefik_routes" {
 }
 
 variable "extra_files" {
-  description = "Arquivos extras a injetar no artefato antes do envio. Chave = caminho relativo ao artifact_path, valor = conteúdo raw do arquivo. Sobrescreve arquivos de mesmo nome do artifact_path."
-  type        = map(string)
-  default     = {}
-  sensitive   = true
-}
-
-variable "extra_files" {
   description = "Arquivos extras gerados programaticamente (ex: templatefile, jsonencode) a serem enviados junto ao artefato. Chaves sao caminhos relativos ao diretorio do compose no host remoto, valores sao o conteudo do arquivo."
   type        = map(string)
   default     = {}
