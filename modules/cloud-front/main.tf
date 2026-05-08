@@ -26,18 +26,18 @@ resource "aws_cloudfront_distribution" "distribution" {
 
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "${local.full_name}"
+  comment             = local.full_name
   default_root_object = "index.html"
-  aliases = var.full_dns_name != "" ? [var.full_dns_name] : []
+  aliases             = var.full_dns_name != "" ? [var.full_dns_name] : []
 
   custom_error_response {
-    error_code          = 404
-    response_code       = 200
-    response_page_path  = "/index.html"
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   default_cache_behavior {
-    compress        = true
+    compress         = true
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-ar-${local.full_name}"
@@ -65,17 +65,17 @@ resource "aws_cloudfront_distribution" "distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn             = var.zone_id != "" ? "arn:aws:acm:us-east-1:459109365497:certificate/b79bee47-1cc2-4d2a-88b7-6803dd08debd" : null
-    ssl_support_method              = var.zone_id != "" ? "sni-only" : null
-    minimum_protocol_version        = var.zone_id != "" ? "TLSv1.2_2021" : null
-    cloudfront_default_certificate  = var.zone_id != "" ? false : true
+    acm_certificate_arn            = var.zone_id != "" ? "arn:aws:acm:us-east-1:459109365497:certificate/b79bee47-1cc2-4d2a-88b7-6803dd08debd" : null
+    ssl_support_method             = var.zone_id != "" ? "sni-only" : null
+    minimum_protocol_version       = var.zone_id != "" ? "TLSv1.2_2021" : null
+    cloudfront_default_certificate = var.zone_id != "" ? false : true
   }
-  
+
   tags = {
-    cliente = var.cliente_name
+    cliente       = var.cliente_name
     cliente-group = var.cliente_group
-    project = var.project-name
-    environment = var.environment
+    project       = var.project-name
+    environment   = var.environment
   }
 }
 
@@ -89,7 +89,7 @@ output "progam-parans" {
 
 output "all" {
   value = {
-    dominio = var.zone_id == "" || var.full_dns_name == "" ? aws_cloudfront_distribution.distribution.domain_name : var.full_dns_name
+    dominio  = var.zone_id == "" || var.full_dns_name == "" ? aws_cloudfront_distribution.distribution.domain_name : var.full_dns_name
     distPath = local.distPath
   }
 }

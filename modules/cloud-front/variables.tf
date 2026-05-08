@@ -26,21 +26,21 @@ variable "environment" {
 }
 
 variable "release_version" {
-  description = "The version of the GitHub release to download"
+  description = "Versao do release GitHub; use none para dist local e -1 para usar a branch principal"
   type        = string
-  default = "none"
+  default     = "none"
 }
 
 variable "repo_owner" {
   description = "The owner of the GitHub repository"
   type        = string
-  default = "malacration"
+  default     = "malacration"
 }
 
 variable "repo_name" {
   description = "The name of the GitHub repository"
   type        = string
-  default = "sap-front"
+  default     = "sap-front"
 }
 
 variable "github_token" {
