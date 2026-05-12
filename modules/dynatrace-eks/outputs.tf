@@ -15,7 +15,7 @@ output "namespace" {
 
 output "helm_release_name" {
   description = "Nome do release Helm do Dynatrace Operator."
-  value       = helm_release.dynatrace_operator.name
+  value       = module.dynatrace_k8s.helm_release_name
 }
 
 output "dynakube_name" {
@@ -25,7 +25,7 @@ output "dynakube_name" {
 
 output "tokens_secret_name" {
   description = "Nome do secret com os tokens usados pelo Dynatrace."
-  value       = kubernetes_secret_v1.tokens.metadata[0].name
+  value       = module.dynatrace_k8s.tokens_secret_name
 }
 
 output "tenant_url" {
