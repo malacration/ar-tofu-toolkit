@@ -1,5 +1,5 @@
 locals {
-  effective_region = coalesce(var.aws_region, data.aws_region.current.name)
+  effective_region = coalesce(var.aws_region, data.aws_region.current.id)
   effective_cluster_name = var.cluster_name == null ? var.eks_cluster_name : (
     trimspace(var.cluster_name) != "" ? trimspace(var.cluster_name) : var.eks_cluster_name
   )

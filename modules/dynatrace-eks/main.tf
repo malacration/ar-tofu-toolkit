@@ -34,7 +34,7 @@ provider "kubectl" {
     args = [
       "eks", "get-token",
       "--cluster-name", var.eks_cluster_name,
-      "--region", coalesce(var.aws_region, data.aws_region.current.name),
+      "--region", coalesce(var.aws_region, data.aws_region.current.id),
     ]
   }
 }
