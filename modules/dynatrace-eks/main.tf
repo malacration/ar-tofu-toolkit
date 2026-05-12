@@ -39,32 +39,60 @@ provider "kubectl" {
   }
 }
 
-module "dynatrace_k8s" {
-  source = "../dynatrace-k8s"
+resource "kubernetes_namespace_v1" "dynatrace" {
+  count = var.create_namespace ? 1 : 0
 
-  cluster_name                 = local.effective_cluster_name
-  tenant_url                   = var.tenant_url
-  tokens                       = var.tokens
-  namespace                    = var.namespace
-  create_namespace             = var.create_namespace
-  helm_release_name            = var.helm_release_name
-  dynakube_name                = var.dynakube_name
-  chart                        = var.chart
-  activegate_capabilities      = var.activegate_capabilities
-  enable_kubernetes_monitoring = var.enable_kubernetes_monitoring
-  skip_cert_check              = var.skip_cert_check
-  custom_pull_secret           = var.custom_pull_secret
-  trusted_cas                  = var.trusted_cas
-  network_zone                 = var.network_zone
-  enable_istio                 = var.enable_istio
-  proxy_secret_name            = var.proxy_secret_name
-  metadata_enrichment_enabled  = var.metadata_enrichment_enabled
-  telemetry_ingest_protocols   = var.telemetry_ingest_protocols
-  values_override              = var.values_override
-
-  providers = {
-    kubernetes = kubernetes
-    helm       = helm
-    kubectl    = kubectl
+  metadata {
+    name = var.namespace
   }
+}
+
+resource "helm_release" "dynatrace_operator" {
+  name             = var.helm_release_name
+  repository       = var.chart.repository
+  chart            = var.chart.name
+  version          = var.chart.version
+  namespace        = var.namespace
+  create_namespace = false
+
+  values = [
+    yamlencode(local.helm_values),
+    yamlencode(var.values_override),
+  ]
+
+  depends_on = [kubernetes_namespace_v1.dynatrace]
+}
+
+resource "kubernetes_secret_v1" "tokens" {
+  metadata {
+    name      = var.dynakube_name
+    namespace = var.namespace
+  }
+
+  data = {
+    apiToken        = var.tokens.api_token
+    dataIngestToken = var.tokens.data_ingest_token
+  }
+
+  type = "Opaque"
+
+  depends_on = [kubernetes_namespace_v1.dynatrace]
+}
+
+resource "kubectl_manifest" "dynakube" {
+  yaml_body = yamlencode({
+    apiVersion = "dynatrace.com/v1beta6"
+    kind       = "DynaKube"
+    metadata = {
+      name        = var.dynakube_name
+      namespace   = var.namespace
+      annotations = local.dynakube_annotations
+    }
+    spec = local.dynakube_spec
+  })
+
+  depends_on = [
+    helm_release.dynatrace_operator,
+    kubernetes_secret_v1.tokens,
+  ]
 }
