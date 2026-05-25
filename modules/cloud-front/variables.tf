@@ -60,3 +60,9 @@ variable "full_dns_name" {
   type        = string
   default     = ""
 }
+
+variable "create_cloudfront" {
+  description = "Se false, nao cria a distribuicao CloudFront nem a regra Route53. O bucket S3 e os arquivos sao criados normalmente."
+  type        = bool
+  default     = true
+}

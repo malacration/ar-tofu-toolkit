@@ -57,3 +57,38 @@ output "loki_datasource_uid" {
   description = "Alias de compatibilidade para o UID do primeiro datasource Loki provisionado."
   value       = try(var.loki_datasources[0].uid, null)
 }
+
+output "opensearch_datasource_names" {
+  description = "Nomes dos datasources OpenSearch provisionados."
+  value       = [for ds in var.opensearch_datasources : ds.name]
+}
+
+output "opensearch_datasource_uids" {
+  description = "UIDs dos datasources OpenSearch provisionados."
+  value       = [for ds in var.opensearch_datasources : ds.uid]
+}
+
+output "plugins" {
+  description = "Lista de plugins instalados no Grafana por este modulo."
+  value       = local.plugins_list
+}
+
+output "ingress_hostname" {
+  description = "Hostname do ALB gerado pelo Ingress. Null quando ingress.enabled = false."
+  value       = var.ingress.enabled ? try(kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].hostname, null) : null
+}
+
+output "alb_rule_arn" {
+  description = "ARN da listener rule criada no ALB existente. Null quando alb_rule.enabled = false."
+  value       = local.use_alb_rule ? try(aws_lb_listener_rule.grafana[0].arn, null) : null
+}
+
+output "sso_enabled" {
+  description = "Indica se o SSO via Keycloak foi configurado."
+  value       = local.sso_enabled
+}
+
+output "sso_keycloak_instructions" {
+  description = "Mini instrucao para configurar o Keycloak para autenticacao no Grafana."
+  value       = local.sso_keycloak_instructions
+}

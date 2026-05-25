@@ -3,6 +3,8 @@ locals {
 }
 
 resource "aws_cloudfront_origin_access_control" "cloudfront_acl" {
+  count = var.create_cloudfront ? 1 : 0
+
   name = local.full_name
 
   origin_access_control_origin_type = "s3"
@@ -11,16 +13,20 @@ resource "aws_cloudfront_origin_access_control" "cloudfront_acl" {
 }
 
 resource "aws_cloudfront_origin_access_identity" "s3_identity" {
+  count = var.create_cloudfront ? 1 : 0
+
   comment = "S3 CloudFront Origin Access Identity"
 }
 
 
 resource "aws_cloudfront_distribution" "distribution" {
+  count = var.create_cloudfront ? 1 : 0
+
   origin {
     domain_name = aws_s3_bucket.bucket.bucket_regional_domain_name
     origin_id   = "S3-ar-${local.full_name}"
     s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.s3_identity.cloudfront_access_identity_path
+      origin_access_identity = aws_cloudfront_origin_access_identity.s3_identity[0].cloudfront_access_identity_path
     }
   }
 
@@ -89,7 +95,9 @@ output "progam-parans" {
 
 output "all" {
   value = {
-    dominio  = var.zone_id == "" || var.full_dns_name == "" ? aws_cloudfront_distribution.distribution.domain_name : var.full_dns_name
+    dominio  = var.create_cloudfront ? (
+      var.zone_id == "" || var.full_dns_name == "" ? aws_cloudfront_distribution.distribution[0].domain_name : var.full_dns_name
+    ) : aws_s3_bucket.bucket.bucket_regional_domain_name
     distPath = local.distPath
   }
 }
