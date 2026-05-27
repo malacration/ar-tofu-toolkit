@@ -66,15 +66,17 @@ publish-modules:
           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/terraform/modules/${module_name}/${module_system}/${VERSION}/file"
       }
 
-      publish_module modules/cloud-front cloud-front aws
-      publish_module modules/cloud-front-iam cloud-front-iam aws
+      publish_module modules/cloud-front          cloud-front          aws
+      publish_module modules/cloud-front-iam      cloud-front-iam      aws
       publish_module modules/cloud-front-to-public-ec2 cloud-front-to-public-ec2 aws
-      publish_module modules/deploy_compose deploy-compose aws
-      publish_module modules/dynatrace-eks dynatrace-eks aws
-      publish_module modules/dynatrace-k8s dynatrace-k8s helm
-      publish_module modules/ec2-docker ec2-docker aws
-      publish_module modules/fluentbit-k8s fluentbit-k8s helm
-      publish_module modules/grafana-k8s grafana-k8s helm
-      publish_module modules/loki-aws-eks loki-aws-eks aws
-      publish_module modules/smtp_email_account smtp-email-account aws
-      publish_module modules/subnet-by-name subnet-by-name aws
+      publish_module modules/deploy_compose       deploy-compose       aws
+      publish_module modules/dynatrace-eks        dynatrace-eks        aws
+      publish_module modules/dynatrace-k8s        dynatrace-k8s        helm
+      publish_module modules/ec2-docker           ec2-docker           aws
+      publish_module modules/fluentbit-k8s        fluentbit-k8s        helm
+      publish_module modules/fluentbit-eks        fluentbit-eks        aws
+      publish_module modules/grafana-eks          grafana-eks          aws
+      publish_module modules/loki-aws-eks         loki-aws-eks         aws
+      publish_module modules/opensearch-aws       opensearch-aws       aws
+      publish_module modules/smtp_email_account   smtp-email-account   aws
+      publish_module modules/subnet-by-name       subnet-by-name       aws
