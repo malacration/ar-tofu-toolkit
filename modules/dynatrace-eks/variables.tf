@@ -74,13 +74,28 @@ variable "tokens" {
 }
 
 variable "activegate_capabilities" {
-  description = "Lista adicional de capacidades do ActiveGate no DynaKube."
+  description = "Capacidades habilitadas no ActiveGate. Por padrao inclui routing e dynatrace-api. kubernetes-monitoring e adicionado automaticamente quando enable_kubernetes_monitoring = true."
   type        = list(string)
-  default     = []
+  default     = ["routing", "dynatrace-api"]
+}
+
+variable "activegate_resources" {
+  description = "Resource requests e limits para os pods do ActiveGate."
+  type = object({
+    requests = optional(object({
+      cpu    = optional(string)
+      memory = optional(string)
+    }), {})
+    limits = optional(object({
+      cpu    = optional(string)
+      memory = optional(string)
+    }), {})
+  })
+  default = null
 }
 
 variable "enable_kubernetes_monitoring" {
-  description = "Se true, habilita o monitoramento da API Kubernetes no Dynatrace."
+  description = "Se true, adiciona kubernetes-monitoring as capabilities do ActiveGate e habilita anotacoes de monitoramento automatico da API Kubernetes."
   type        = bool
   default     = true
 }
@@ -122,15 +137,56 @@ variable "proxy_secret_name" {
 }
 
 variable "metadata_enrichment_enabled" {
-  description = "Se true, habilita metadata enrichment no DynaKube."
+  description = "Se true, habilita metadata enrichment nos workloads monitorados."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "telemetry_ingest_protocols" {
   description = "Protocolos opcionais para habilitar telemetry ingest no cluster."
   type        = list(string)
   default     = []
+}
+
+variable "oneagent" {
+  description = "Configuracao do OneAgent deployado como DaemonSet nos nodes de workload."
+  type = object({
+    enabled     = optional(bool, true)
+    mode        = optional(string, "cloudNativeFullStack")
+    host_group  = optional(string, null)
+    auto_update = optional(bool, true)
+
+    # Deep monitoring: namespaces com a label abaixo recebem injecao de codigo.
+    # Para injetar em todos os namespaces, defina inject_all_namespaces = true.
+    # Adicione a label nos namespaces da aplicacao:
+    #   kubectl label namespace <ns> dynatrace-monitoring=enabled
+    inject_all_namespaces    = optional(bool, false)
+    namespace_selector_label = optional(string, "dynatrace-monitoring")
+    namespace_selector_value = optional(string, "enabled")
+
+    node_selector = optional(map(string), {})
+
+    tolerations = optional(list(object({
+      key      = optional(string)
+      operator = optional(string, "Exists")
+      effect   = optional(string)
+    })), [])
+
+    resources = optional(object({
+      requests = optional(object({
+        cpu    = optional(string)
+        memory = optional(string)
+      }), null)
+      limits = optional(object({
+        cpu    = optional(string)
+        memory = optional(string)
+      }), null)
+    }), null)
+
+    args = optional(list(string), [])
+    env  = optional(map(string), {})
+  })
+  default = {}
 }
 
 variable "values_override" {
