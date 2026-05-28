@@ -61,11 +61,13 @@ output "loki_datasource_uid" {
 output "opensearch_datasource_names" {
   description = "Nomes dos datasources OpenSearch provisionados."
   value       = [for ds in var.opensearch_datasources : ds.name]
+  sensitive   = true
 }
 
 output "opensearch_datasource_uids" {
   description = "UIDs dos datasources OpenSearch provisionados."
   value       = [for ds in var.opensearch_datasources : ds.uid]
+  sensitive   = true
 }
 
 output "plugins" {
@@ -86,9 +88,11 @@ output "alb_rule_arn" {
 output "sso_enabled" {
   description = "Indica se o SSO via Keycloak foi configurado."
   value       = local.sso_enabled
+  sensitive   = true
 }
 
 output "sso_keycloak_instructions" {
   description = "Mini instrucao para configurar o Keycloak para autenticacao no Grafana."
   value       = local.sso_keycloak_instructions
+  sensitive   = true
 }
